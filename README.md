@@ -6,5 +6,5 @@
 
 #### 小市值
 
-1. 低价-small_price.py
-2. 低负债
+1. 低价-low_price.py
+2. 低负债-dr_tv_lev_w1.py
