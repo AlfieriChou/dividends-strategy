@@ -78,10 +78,13 @@ def filter_stock_list(context):
   config = json.loads(configFile)
   target_list = filter_stocks(context, config)
   current_data = get_current_data()
-  log.info("[每日精选]：", str(target_list))
+  now = context.current_dt
+  week_num = now.weekday()
+  log.info("[每日精选]：", week_num, str(target_list))
   if config['isSendEmail']:
-    send_email_msg(context, config, target_list, current_data)
-    send_daily_target_wechat_msg(context, config, target_list, current_data)
+    if week_num == 0:
+      send_email_msg(context, config, target_list, current_data)
+      send_daily_target_wechat_msg(context, config, target_list, current_data)
     send_daily_hold_wechat_msg(context, config)
 
 def my_Trader(context):
