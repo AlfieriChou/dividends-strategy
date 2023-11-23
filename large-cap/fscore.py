@@ -40,6 +40,7 @@ def initialize(context):
     ),
     type = 'stock'
   )
+  run_daily(prepare_stock_list, '9:05:00')
   # 开盘前运行
   run_weekly(before_market_open, 1, time = 'before_open', reference_security = '000300.XSHG')
   #开盘时运行
@@ -49,10 +50,71 @@ def initialize(context):
   run_daily(print_position_info, '15:10:00')
   run_daily(filter_stock_list, '7:45:00')
   run_daily(filter_stock_list, '13:30:00')
+  run_daily(send_replay, '15:03')
   #定义交易月份
   g.Transfer_date = list(range(1, 13, 1))
   g.stock_num = 5
+  g.no_trading_today_signal = False
+  g.hold_list = [] #当前持仓的全部股票    
+  g.yesterday_HL_list = [] #记录持仓中昨日涨停的股票
   run_time(5)
+
+def send_replay(context):
+  configFile = read_file('fscore_config.json')
+  config = json.loads(configFile)
+  send_replay_msg(context, config)
+
+# 准备股票池
+def prepare_stock_list(context):
+  #获取已持有列表
+  g.hold_list = []
+  for position in list(context.portfolio.positions.values()):
+    stock = position.security
+    g.hold_list.append(stock)
+  #获取昨日涨停列表
+  if g.hold_list != []:
+    df = get_price(
+      g.hold_list,
+      end_date = context.previous_date,
+      frequency = 'daily',
+      fields = ['close','high_limit'],
+      count = 1,
+      panel = False,
+      fill_paused = False
+    )
+    df = df[df['close'] == df['high_limit']]
+    g.yesterday_HL_list = list(df.code)
+  else:
+    g.yesterday_HL_list = []
+  #判断今天是否为账户资金再平衡的日期
+  g.no_trading_today_signal = today_is_between(context, '04-05', '04-30')
+
+
+# 清仓后次日资金可转
+def close_account(context):
+  if g.no_trading_today_signal == True:
+    if len(g.hold_list) != 0:
+      for stock in g.hold_list:
+        position = context.portfolio.positions[stock]
+        close_position(position)
+        log.info("卖出[%s]" % (stock))
+
+# 交易模块-平仓
+def close_position(position):
+  security = position.security
+  order = order_target_value_(security, 0)  # 可能会因停牌失败
+  if order != None:
+    if order.status == OrderStatus.held and order.filled == order.amount:
+      return True
+  return False
+  
+# 判断今天是否为账户资金再平衡的日期
+def today_is_between(context, start_date, end_date):
+  today = context.current_dt.strftime('%m-%d')
+  if (start_date <= today) and (today <= end_date):
+    return True
+  else:
+    return False
 
 def run_time(x):
   #获取日内交易时间并剔除15:00
@@ -66,9 +128,11 @@ def run_monitor_schedule(context):
   configFile = read_file('fscore_config.json')
   config = json.loads(configFile)
   current_data = get_current_data()
+  hold_list = list(context.portfolio.positions)
   if config['is_send_wechat_msg']:
-    send_realtime_wechat_msg(context, config, current_data)
-    send_monitor_wechat_msg(context, config, current_data)
+    send_wechat_msg(context, config, stock_list = hold_list, current_data = current_data)
+    send_monitor_wechat_msg(context, config['monitor_config'], current_data)
+    send_realtime_wechat_msg(context, config['optional_config'], current_data)
     send_realtime_wechat_msg(context, config['outside_config'], current_data)
 
 # 打印每日持仓信息
@@ -163,10 +227,13 @@ def filter_stock_list(context):
   config = json.loads(configFile)
   target_list = get_stock(context)
   current_data = get_current_data()
-  log.info('预选列表：' + str(target_list))
+  now = context.current_dt
+  week_num = now.weekday()
+  log.info('预选列表：', week_num, str(target_list))
   if config['isSendEmail']:
-    send_email_msg(context, config, target_list, current_data)
-    send_daily_target_wechat_msg(context, config, target_list, current_data)
+    if week_num == 0:
+      send_email_msg(context, config, target_list, current_data)
+      send_daily_target_wechat_msg(context, config, target_list, current_data)
     send_daily_hold_wechat_msg(context, config)
 
 ## 开盘前运行函数
@@ -176,39 +243,39 @@ def before_market_open(context):
 ## 开盘时运行函数
 def market_open(context):
   log.info('函数运行时间(market_open):' + str(context.current_dt.time()))
-
-  #获取当前交易日期的月份
-  current_month = context.current_dt.month
-  if current_month in g.Transfer_date:
-    #买入股票列表
-    buy_list = g.buy_list
-    #简记当前组合
-    p = context.portfolio
-    # 获取当前时间数据
-    cur_data = get_current_data()
-    #获取当前交易日期
-    current_day = context.current_dt
-    # 卖出股票
-    for code in list(p.positions.keys()):
-      if code not in buy_list:
-        if cur_data[code].paused:
-          continue
-        # 卖出股票
-        order_target_value(code, 0)
-      else:
-        open_price = cur_data[code].day_open
-        num_to_target = (p.total_value / len(buy_list)) / open_price // 100 * 100
-        order_target(code, num_to_target)
-
-    #买入股票
-    for code in buy_list:
-      if code not in p.positions:
-        if cur_data[code].paused:
-          continue
-        open_price = cur_data[code].day_open
-        num_to_buy = (p.total_value / len(buy_list)) / open_price // 100 * 100
-        # 买入股票
-        order_target(code, num_to_buy)
+  if g.no_trading_today_signal == False:
+    #获取当前交易日期的月份
+    current_month = context.current_dt.month
+    if current_month in g.Transfer_date:
+      #买入股票列表
+      buy_list = g.buy_list
+      #简记当前组合
+      p = context.portfolio
+      # 获取当前时间数据
+      cur_data = get_current_data()
+      #获取当前交易日期
+      current_day = context.current_dt
+      # 卖出股票
+      for code in list(p.positions.keys()):
+        if code not in buy_list:
+          if cur_data[code].paused:
+            continue
+          # 卖出股票
+          order_target_value(code, 0)
+        else:
+          open_price = cur_data[code].day_open
+          num_to_target = (p.total_value / len(buy_list)) / open_price // 100 * 100
+          order_target(code, num_to_target)
+  
+      #买入股票
+      for code in buy_list:
+        if code not in p.positions:
+          if cur_data[code].paused:
+            continue
+          open_price = cur_data[code].day_open
+          num_to_buy = (p.total_value / len(buy_list)) / open_price // 100 * 100
+          # 买入股票
+          order_target(code, num_to_buy)
 
 ## 收盘后运行函数
 def after_market_close(context):
@@ -531,5 +598,115 @@ def get_F_socre_and_rank(security, watch_date):
   df_scores = df_scores.sort_values(by = 'total',ascending = False)   
 
   return df_scores
+
+def get_block_list():
+  df_block = get_industries('sw_l1')
+  # 增加涨跌幅列
+  df_block['rise'] = 0
+  return df_block
+  
+# 获取涨跌幅函数
+def get_stock_rise(stock_list, start_date, end_date):
+  # 获取当日未停牌股票
+  panel = get_price(stock_list, end_date = end_date, fields = ['paused'], count = 1)
+  df = panel['paused'].T
+  df = df[df.iloc[:,0] == 0]
+  stock_list = list(df.index)
+  # 获取收盘价数据
+  panel = get_price(stock_list, start_date = start_date, end_date = end_date, fields = ['close'])
+  df = panel['close'].T
+  # 计算涨跌幅
+  df['rise'] = (df[end_date] - df[start_date]) / df[start_date]
+  df = df.sort_values(by='rise', ascending = False)
+  return df
+
+def build_sw_1_msg(context, index_name, df):
+  # 打包hmlt表格
+  title = '[' + index_name + ']:每日复盘'
+  header = ['板块名称', '今日涨幅', '5天涨幅', '10天涨幅', '20天涨幅']
+  # 数据二维数组
+  rows = []
+  for index in df.index:
+    rows.append([
+      df.name[index],
+      '{}%'.format(format(df.rise[index] * 100, '.2f')),
+      '{}%'.format(format(df.rise_5[index] * 100, '.2f')),
+      '{}%'.format(format(df.rise_10[index] * 100, '.2f')),
+      '{}%'.format(format(df.rise_20[index] * 100, '.2f'))
+    ])
+  return render_to_html_table(title, {}, header, rows)
+
+def build_sw_msg(context):
+  today = context.current_dt
+  trade_days = get_trade_days(end_date = today, count = 21)
+  today = trade_days[-1]             # 当天
+  yesterday = trade_days[-2]         # 上一个交易日
+  previous_day_5 = trade_days[-6]  # 前5个交易日
+  previous_day_10 = trade_days[-11]  # 前10个交易日
+  previous_day_20 = trade_days[-21]  # 前20个交易日
+
+  df_block = get_block_list()
+  df_block['rise_5'] = 0
+  df_block['rise_5_ex'] = 0
+  df_block['rise_10'] = 0
+  df_block['rise_10_ex'] = 0
+  df_block['rise_20'] = 0
+  df_block['rise_20_ex'] = 0
+
+  # 计算基准指数涨跌幅
+  benchmark = ['000300.XSHG']
+  rise_5_bm = get_stock_rise(benchmark, previous_day_5, today).rise[0]
+  rise_10_bm = get_stock_rise(benchmark, previous_day_10, today).rise[0]
+  rise_20_bm = get_stock_rise(benchmark, previous_day_20, today).rise[0]
+
+  # 统计行业涨跌幅
+  for index in df_block.index:
+    # 获取板块成份股
+    stock_list = list(get_industry_stocks(index, today))
+    
+    if len(stock_list) == 0:
+      df_block.drop(labels=[index],inplace=True)
+      continue
+  
+    # 剔除未上市新股
+    list_all = list(get_all_securities(['stock']).index)
+    stock_list = list(set(stock_list).intersection(set(list_all)))
+    stock_list.sort()
+    
+    # 获取板块今日涨跌幅
+    df = get_stock_rise(stock_list, yesterday, today)
+    df_block.loc[index, 'rise'] = df.rise.mean()
+    
+    # 获取板块5天涨跌幅
+    df_5 = get_stock_rise(stock_list, previous_day_5, today)
+    df_block.loc[index, 'rise_5'] = df_5.rise.mean()
+    df_block.loc[index, 'rise_5_ex'] = df_5.rise.mean() - rise_5_bm
+    
+    # 获取板块10天涨跌幅
+    df_10 = get_stock_rise(stock_list, previous_day_10, today)
+    df_block.loc[index, 'rise_10'] = df_10.rise.mean()
+    df_block.loc[index, 'rise_10_ex'] = df_10.rise.mean() - rise_10_bm
+    
+    # 获取板块20天涨跌幅
+    df_20 = get_stock_rise(stock_list, previous_day_20, today)
+    df_block.loc[index, 'rise_20'] = df_20.rise.mean()
+    df_block.loc[index, 'rise_20_ex'] = df_20.rise.mean() - rise_20_bm
+    
+  # 提取年度涨幅排名靠前和靠后的行业
+  df_block = df_block.sort_values(by='rise_5', ascending = False)
+  df_head = df_block.head(5)
+  df_tail = df_block.tail(5)
+  sw_msg = ''
+  sw_msg += build_sw_1_msg(context, '5日强势行业', df_head)
+  sw_msg += build_sw_1_msg(context, '5日弱势行业', df_tail)
+  return sw_msg
+
+def send_replay_msg(context, config):
+  mail_msg = ''
+  mail_msg += '<p>策略名称：每日复盘</p>'
+  mail_msg += '<p>交易时间：' + context.current_dt.strftime('%Y-%m-%d') + '</p>'
+  mail_msg += build_sw_msg(context)
+  if config['isSendEmail']:
+    send_email(config, '每日复盘', mail_msg)
 
 # end
