@@ -134,6 +134,7 @@ def run_monitor_schedule(context):
     send_monitor_wechat_msg(context, config['monitor_config'], current_data)
     send_realtime_wechat_msg(context, config['optional_config'], current_data)
     send_realtime_wechat_msg(context, config['outside_config'], current_data)
+    send_realtime_wechat_msg(context, config['melody_config'], current_data)
 
 # 打印每日持仓信息
 def print_position_info(context):
@@ -621,9 +622,10 @@ def get_stock_rise(stock_list, start_date, end_date):
   return df
 
 def build_sw_1_msg(context, index_name, df):
+  today = datetime.date.today()
   # 打包hmlt表格
   title = '[' + index_name + ']:每日复盘'
-  header = ['板块名称', '今日涨幅', '5天涨幅', '10天涨幅', '20天涨幅']
+  header = ['板块名称', '今日涨幅', '5天涨幅', '10天涨幅', '20天涨幅', '预选标的']
   # 数据二维数组
   rows = []
   for index in df.index:
@@ -632,9 +634,19 @@ def build_sw_1_msg(context, index_name, df):
       '{}%'.format(format(df.rise[index] * 100, '.2f')),
       '{}%'.format(format(df.rise_5[index] * 100, '.2f')),
       '{}%'.format(format(df.rise_10[index] * 100, '.2f')),
-      '{}%'.format(format(df.rise_20[index] * 100, '.2f'))
+      '{}%'.format(format(df.rise_20[index] * 100, '.2f')),
+      str(get_dividend_list_by_sw1(index, date = today))
     ])
   return render_to_html_table(title, {}, header, rows)
+
+def get_dividend_list_by_sw1(sw1_code, date):
+  dividend_list = list(get_index_stocks('399411.XSHE', date))
+  sw1_stock_list = list(get_industry_stocks(sw1_code, date))
+  target_list = []
+  for stock in sw1_stock_list:
+    if stock in dividend_list:
+      target_list.append(stock)
+  return target_list
 
 def build_sw_msg(context):
   today = context.current_dt
