@@ -1,0 +1,19 @@
+{
+  "name": "高股息神奇公式量化V0.1",
+  "phone": "18569465445",
+  "emailUsername": "alfierichou@163.com",
+  "emailPassword": "DXLQAIRZXWACAFKT",
+  "sendEmails": "1906954731@qq.com",
+  "isTest": false,
+  "testSendEmails": "1906954731@qq.com",
+  "exclude_industry_filter_list": [
+    "券商I",
+    "非银金融I",
+    "金融服务I",
+    "房地产I",
+    "银行I"
+  ],
+  "n": 20,
+  "m": 2,
+  "isSendEmail": true
+}

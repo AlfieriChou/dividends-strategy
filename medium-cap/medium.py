@@ -24,6 +24,76 @@ def initialize(context):
     # g.month = context.current_dt.month - 1
     #开盘时运行
     run_weekly(my_Trader, 1, time = 'open', reference_security = '000300.XSHG')
+    run_daily(print_position_info, '15:10:00')
+    run_daily(filter_stock_list, '7:45:00')
+    run_daily(filter_stock_list, '13:30:00')
+    run_time(5)
+
+def run_time(x):
+  #获取日内交易时间并剔除15:00
+  list = get_price('000300.XSHG', count = 240, frequency = '1m').index.tolist()[:-1]  
+  times = [str(t)[-8:] for t in list]  #提取交易时间
+  times.insert(0, '09:30:01')
+  for time in times[::x]:
+    run_daily(run_monitor_schedule, time)
+
+def run_monitor_schedule(context):
+  configFile = read_file('medium_config.json')
+  config = json.loads(configFile)
+  current_data = get_current_data()
+  hold_list = list(context.portfolio.positions)
+  if config['is_send_wechat_msg']:
+    send_wechat_msg(context, config, stock_list = hold_list, current_data = current_data)
+
+def get_prev_stock_list (context):
+  dt_last = context.previous_date
+  stocks = get_all_securities('stock', dt_last).index.tolist()#读取所有股票
+  stocks = filter_market_cap(stocks) # 市值大于100亿
+  stocks = filter_kcbj_stock(stocks)  #去科创和北交所
+  stocks = filter_st_stock(stocks)#去ST
+  stocks = filter_new_stock(context, stocks)#去除上市未满1500天
+  stocks = choice_try_A(context,stocks)#基本面选股
+  stocks = filter_paused_stock(stocks)#去停牌
+  stocks = filter_limit_stock(context,stocks)[:g.stock_num]#去除涨停的
+  return stocks
+
+def filter_stock_list (context):
+  slist(context, stocks)
+  configFile = read_file('medium_config.json')
+  config = json.loads(configFile)
+  target_list = get_prev_stock_list(context)
+  current_data = get_current_data()
+  now = context.current_dt
+  week_num = now.weekday()
+  log.info('预选列表：', week_num, str(target_list))
+  if config['isSendEmail']:
+    if week_num == 0:
+      send_email_msg(context, config, target_list, current_data)
+      send_daily_target_wechat_msg(context, config, target_list, current_data)
+    send_daily_hold_wechat_msg(context, config)
+
+# 打印每日持仓信息
+def print_position_info(context):
+  #打印当天成交记录
+  trades = get_trades()
+  for _trade in trades.values():
+    print('成交记录：'+str(_trade))
+  #打印账户信息
+  for position in list(context.portfolio.positions.values()):
+    securities = position.security
+    cost = position.avg_cost
+    price = position.price
+    ret = 100 * (price / cost - 1)
+    value = position.value
+    amount = position.total_amount    
+    print('代码:{}'.format(securities))
+    print('成本价:{}'.format(format(cost, '.2f')))
+    print('现价:{}'.format(price))
+    print('收益率:{}%'.format(format(ret, '.2f')))
+    print('持仓(股):{}'.format(amount))
+    print('市值:{}'.format(format(value, '.2f')))
+    print('———————————————————————————————————')
+  print('———————————————————————————————————————分割线————————————————————————————————————————')
 
 # 开盘前运行，做为未来拓展的空间预留
 def before_trading_start(context):
@@ -60,17 +130,9 @@ def filter_market_cap(stock_list):
   return list(df.code)
 
 def my_Trader(context):
-    dt_last = context.previous_date
-    stocks = get_all_securities('stock', dt_last).index.tolist()#读取所有股票
-    stocks = filter_kcbj_stock(stocks)  #去科创和北交所
-    stocks = filter_st_stock(stocks)#去ST
-    stocks = filter_new_stock(context, stocks)#去除上市未满1500天
-    stocks = choice_try_A(context,stocks)#基本面选股
-    stocks = filter_market_cap(stocks) # 市值大于100亿
-    stocks = filter_paused_stock(stocks)#去停牌
-    stocks = filter_limit_stock(context,stocks)[:g.stock_num]#去除涨停的
+    stocks = get_prev_stock_list(context)
     cdata = get_current_data()
-    slist(context,stocks)
+    slist(context, stocks)
     # Sell
     for s in context.portfolio.positions:
         if (s  not in stocks) and (cdata[s].last_price <  cdata[s].high_limit):
