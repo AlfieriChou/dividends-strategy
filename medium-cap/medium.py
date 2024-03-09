@@ -13,6 +13,9 @@
 '''
 import pandas as pd
 from jqdata import *
+from wechat_msg import *
+from email_msg import *
+from realtime_wechat_msg import *
 
 def initialize(context):
     set_benchmark('000300.XSHG')
@@ -47,18 +50,17 @@ def run_monitor_schedule(context):
 
 def get_prev_stock_list (context):
   dt_last = context.previous_date
-  stocks = get_all_securities('stock', dt_last).index.tolist()#读取所有股票
-  stocks = filter_market_cap(stocks) # 市值大于100亿
+  stocks = get_all_securities('stock', dt_last).index.tolist() # 读取所有股票
+  stocks = filter_market_cap(stocks) # 市值大于100亿，小于1000亿
   stocks = filter_kcbj_stock(stocks)  #去科创和北交所
-  stocks = filter_st_stock(stocks)#去ST
-  stocks = filter_new_stock(context, stocks)#去除上市未满1500天
-  stocks = choice_try_A(context,stocks)#基本面选股
-  stocks = filter_paused_stock(stocks)#去停牌
-  stocks = filter_limit_stock(context,stocks)[:g.stock_num]#去除涨停的
+  stocks = filter_st_stock(stocks) # 去ST
+  stocks = filter_new_stock(context, stocks) # 去除上市未满1500天
+  stocks = choice_try_A(context, stocks) # 基本面选股
+  stocks = filter_paused_stock(stocks) # 去停牌
+  stocks = filter_limit_stock(context, stocks)[:g.stock_num] # 去除涨停的
   return stocks
 
 def filter_stock_list (context):
-  slist(context, stocks)
   configFile = read_file('medium_config.json')
   config = json.loads(configFile)
   target_list = get_prev_stock_list(context)
