@@ -18,19 +18,19 @@ from email_msg import *
 from realtime_wechat_msg import *
 
 def initialize(context):
-    set_benchmark('000300.XSHG')
-    log.set_level('order', 'error')
-    set_option('use_real_price', True)
-    set_option('avoid_future_data', True)# 设置是否开启避免未来数据模式
-    set_slippage(FixedSlippage(0.02))# 设置滑点    
-    g.stock_num = 5
-    # g.month = context.current_dt.month - 1
-    #开盘时运行
-    run_weekly(my_Trader, 1, time = 'open', reference_security = '000300.XSHG')
-    run_daily(print_position_info, '15:10:00')
-    run_daily(filter_stock_list, '7:45:00')
-    run_daily(filter_stock_list, '13:30:00')
-    run_time(5)
+  set_benchmark('000300.XSHG')
+  log.set_level('order', 'error')
+  set_option('use_real_price', True)
+  set_option('avoid_future_data', True)# 设置是否开启避免未来数据模式
+  set_slippage(FixedSlippage(0.02))# 设置滑点    
+  g.stock_num = 5
+  # g.month = context.current_dt.month - 1
+  #开盘时运行
+  run_weekly(my_Trader, 1, time = 'open', reference_security = '000300.XSHG')
+  run_daily(print_position_info, '15:10:00')
+  run_daily(filter_stock_list, '7:45:00')
+  run_daily(filter_stock_list, '13:30:00')
+  run_time(5)
 
 def run_time(x):
   #获取日内交易时间并剔除15:00
@@ -99,9 +99,9 @@ def print_position_info(context):
 
 # 开盘前运行，做为未来拓展的空间预留
 def before_trading_start(context):
-    # log.info(str(context.current_dt))
-    prepare_stock_list(context)
-    print(context.run_params.type) #模拟交易
+  # log.info(str(context.current_dt))
+  prepare_stock_list(context)
+  print(context.run_params.type) #模拟交易
 
 # 开盘时运行函数
 def handle_data(context,data):
@@ -161,122 +161,129 @@ def slist(context,stock_list):
 #1-1 准备股票池
 # 如果持有股票昨天处于涨停的，则放入涨停列表，只要今天打开涨停就卖出，这个每天执行
 def prepare_stock_list(context):
-    #获取已持有列表
-    g.hold_list= []
-    g.high_limit_list=[]
-    for position in list(context.portfolio.positions.values()):
-        stock = position.security
-        g.hold_list.append(stock)
-    #获取昨日涨停列表
-    if g.hold_list != []:
-        for stock in g.hold_list:
-            df = get_price(stock, end_date=context.previous_date, frequency='daily', fields=['close','high_limit'], count=1)
-            if df['close'][0] >= df['high_limit'][0]*0.98:#如果昨天有股票涨停，则放入列表
-                g.high_limit_list.append(stock)
-    
+  #获取已持有列表
+  g.hold_list = []
+  g.high_limit_list = []
+  for position in list(context.portfolio.positions.values()):
+    stock = position.security
+    g.hold_list.append(stock)
+  #获取昨日涨停列表
+  if g.hold_list != []:
+    for stock in g.hold_list:
+      df = get_price(stock, end_date = context.previous_date, frequency = 'daily', fields = ['close','high_limit'], count = 1)
+      if df['close'][0] >= df['high_limit'][0] * 0.98: # 如果昨天有股票涨停，则放入列表
+        g.high_limit_list.append(stock)
+
 #1-5 调整昨日涨停股票
 def check_limit_up(context):
-    now_time = context.current_dt
-    if g.high_limit_list != []:
-        #对昨日涨停股票观察到尾盘如不涨停则提前卖出，如果涨停即使不在应买入列表仍暂时持有
-        for stock in g.high_limit_list:
-            current_data = get_current_data()
-            if current_data[stock].last_price <   current_data[stock].high_limit:
-                log.info("[%s]涨停打开，卖出" % (stock))
-                order_target(stock, 0)
-            else:
-                log.info("[%s]涨停，继续持有" % (stock))            
- 
+  now_time = context.current_dt
+  if g.high_limit_list != []:
+    #对昨日涨停股票观察到尾盘如不涨停则提前卖出，如果涨停即使不在应买入列表仍暂时持有
+    for stock in g.high_limit_list:
+      current_data = get_current_data()
+      if current_data[stock].last_price <   current_data[stock].high_limit:
+        log.info("[%s]涨停打开，卖出" % (stock))
+        order_target(stock, 0)
+      else:
+        log.info("[%s]涨停，继续持有" % (stock))            
+
 # 过滤科创北交股票
 def filter_kcbj_stock(stock_list):
-    for stock in stock_list[:]:
-        if stock[0] == '4' or stock[0] == '8' or stock[:2] == '68' or stock[:2] == '30':
-            stock_list.remove(stock)
-    return stock_list
+  for stock in stock_list[:]:
+    if stock[0] == '4' or stock[0] == '8' or stock[:2] == '68' or stock[:2] == '30':
+      stock_list.remove(stock)
+  return stock_list
 
 # 过滤停牌股票
 def filter_paused_stock(stock_list):
 	current_data = get_current_data()
 	return [stock for stock in stock_list if not current_data[stock].paused]
 
-
 # 过滤ST及其他具有退市标签的股票
 def filter_st_stock(stock_list):
 	current_data = get_current_data()
 	return [stock for stock in stock_list
-			if not current_data[stock].is_st
-			and 'ST' not in current_data[stock].name
-			and '*' not in current_data[stock].name
-			and '退' not in current_data[stock].name]
+    if not current_data[stock].is_st
+    and 'ST' not in current_data[stock].name
+    and '*' not in current_data[stock].name
+    and '退' not in current_data[stock].name]
 
 # 过滤涨停的股票
 def filter_limit_stock(context, stock_list):
-	last_prices = history(1, unit='1m', field='close', security_list=stock_list)
+	last_prices = history(1, unit = '1m', field = 'close', security_list = stock_list)
 	current_data = get_current_data()
 	# 已存在于持仓的股票即使涨停也不过滤，避免此股票再次可买，但因被过滤而导致选择别的股票
 	return [stock for stock in stock_list if stock in context.portfolio.positions.keys()
-			or current_data[stock].low_limit < last_prices[stock][-1] < current_data[stock].high_limit]
+		or current_data[stock].low_limit < last_prices[stock][-1] < current_data[stock].high_limit]
 
 #1-1 根据最近三年分红除以当前总市值计算股息率并筛选(代码修改，可以再一创运行）
 def get_dividend_ratio_filter_list(context, stock_list, sort, p1, p2):
-    time1 = context.previous_date
-    time0 = time1 - datetime.timedelta(days=365*3)#最近3年分红
-    #获取分红数据，由于finance.run_query最多返回4000行，以防未来数据超限，最好把stock_list拆分后查询再组合
-    interval = 1000 #某只股票可能一年内多次分红，导致其所占行数大于1，所以interval不要取满4000
-    list_len = len(stock_list)
-    #截取不超过interval的列表并查询
-    q = query(finance.STK_XR_XD.code, finance.STK_XR_XD.a_registration_date, finance.STK_XR_XD.bonus_amount_rmb
-    ).filter(
+  time1 = context.previous_date
+  time0 = time1 - datetime.timedelta(days = 365 * 3)#最近3年分红
+  #获取分红数据，由于finance.run_query最多返回4000行，以防未来数据超限，最好把stock_list拆分后查询再组合
+  interval = 1000 #某只股票可能一年内多次分红，导致其所占行数大于1，所以interval不要取满4000
+  list_len = len(stock_list)
+  #截取不超过interval的列表并查询
+  q = query(
+    finance.STK_XR_XD.code,
+    finance.STK_XR_XD.a_registration_date,
+    finance.STK_XR_XD.bonus_amount_rmb
+  ).filter(
+    finance.STK_XR_XD.a_registration_date >= time0,
+    finance.STK_XR_XD.a_registration_date <= time1,
+    finance.STK_XR_XD.code.in_(stock_list[:min(list_len, interval)]))
+  df = finance.run_query(q)
+  #对interval的部分分别查询并拼接
+  if list_len > interval:
+    df_num = list_len // interval
+    for i in range(df_num):
+      q = query(
+        finance.STK_XR_XD.code,
+        finance.STK_XR_XD.a_registration_date,
+        finance.STK_XR_XD.bonus_amount_rmb
+      ).filter(
         finance.STK_XR_XD.a_registration_date >= time0,
         finance.STK_XR_XD.a_registration_date <= time1,
-        finance.STK_XR_XD.code.in_(stock_list[:min(list_len, interval)]))
-    df = finance.run_query(q)
-    #对interval的部分分别查询并拼接
-    if list_len > interval:
-        df_num = list_len // interval
-        for i in range(df_num):
-            q = query(finance.STK_XR_XD.code, finance.STK_XR_XD.a_registration_date,  finance.STK_XR_XD.bonus_amount_rmb
-            ).filter(
-                finance.STK_XR_XD.a_registration_date >= time0,
-                finance.STK_XR_XD.a_registration_date <= time1,
-                finance.STK_XR_XD.code.in_(stock_list[interval*(i+1):min(list_len,interval*(i+2))]))
-            temp_df = finance.run_query(q)
-            df = df.append(temp_df)
-    dividend = df.fillna(0)#df.fillna() 是一个 Pandas 数据处理库中的函数，它可以用来填充数据框中的空值
-    dividend = dividend.groupby('code').sum()
-    temp_list = list(dividend.index) # query查询不到无分红信息的股票，所以temp_list长度会小于stock_list
-    # # 获取市值相关数据
-    q = query(valuation.code,valuation.market_cap).filter(valuation.code.in_(temp_list))
-    cap = get_fundamentals(q, date=time1)
-    cap = cap.set_index('code')
-    # # 计算股息率
-    cap['dividend_ratio'] = (dividend['bonus_amount_rmb'] / 10000) / cap['market_cap']
-    # # 排序并筛选
-    cap = cap.sort_values(by = ['dividend_ratio'], ascending = sort)
-    final_list = list(cap.index)[int(p1 * len(cap)):int(p2 * len(cap))]
-    print("近3年累计分红率排名前{0:.2%}的股有{1}只".format(p2, len(final_list)))
-    return final_list
+        finance.STK_XR_XD.code.in_(stock_list[interval * (i + 1):min(list_len, interval * (i + 2))]))
+      temp_df = finance.run_query(q)
+      df = df.append(temp_df)
+  dividend = df.fillna(0)#df.fillna() 是一个 Pandas 数据处理库中的函数，它可以用来填充数据框中的空值
+  dividend = dividend.groupby('code').sum()
+  temp_list = list(dividend.index) # query查询不到无分红信息的股票，所以temp_list长度会小于stock_list
+  # # 获取市值相关数据
+  q = query(valuation.code,valuation.market_cap).filter(valuation.code.in_(temp_list))
+  cap = get_fundamentals(q, date=time1)
+  cap = cap.set_index('code')
+  # # 计算股息率
+  cap['dividend_ratio'] = (dividend['bonus_amount_rmb'] / 10000) / cap['market_cap']
+  # # 排序并筛选
+  cap = cap.sort_values(by = ['dividend_ratio'], ascending = sort)
+  final_list = list(cap.index)[int(p1 * len(cap)):int(p2 * len(cap))]
+  print("近3年累计分红率排名前{0:.2%}的股有{1}只".format(p2, len(final_list)))
+  return final_list
 	
 # 过滤次新股 最少上市1500天
 def filter_new_stock(context, stock_list):
-    return [stock for stock in stock_list if (context.previous_date - datetime.timedelta(days = 1500)) > get_security_info(stock).start_date]
+  return [stock for stock in stock_list if (context.previous_date - datetime.timedelta(days = 1500)) > get_security_info(stock).start_date]
     
 def choice_try_A(context,stocks):
-    stocks = get_dividend_ratio_filter_list(context, stocks, False, 0, 0.1)    #股息率排序
-    # 获取基本面数据
-    df = get_fundamentals(query(
-            valuation.code,
-            valuation.circulating_market_cap,
-        ).filter(
-            valuation.code.in_(stocks),
-            valuation.pe_ratio.between(0, 25), # 市盈率
-            indicator.inc_return > 3, # 净资产收益率(扣除非经常损益)(%)
-            indicator.inc_total_revenue_year_on_year > 5, # 营业总收入同比增长率(%)
-            indicator.inc_net_profit_year_on_year > 11, # 净利润同比增长率。
-            valuation.pe_ratio / indicator.inc_net_profit_year_on_year > 0.08, # 净利润同比增长率
-            valuation.pe_ratio / indicator.inc_net_profit_year_on_year < 1.9,
-            ))
-    stocks = list(df.code) 
-    print("分红比率筛选后的股票有：{}".format(len(stocks)))
-    # print(df)
-    return stocks
+  stocks = get_dividend_ratio_filter_list(context, stocks, False, 0, 0.1)    #股息率排序
+  # 获取基本面数据
+  df = get_fundamentals(
+    query(
+      valuation.code,
+      valuation.circulating_market_cap,
+    ).filter(
+      valuation.code.in_(stocks),
+      valuation.pe_ratio.between(0, 25), # 市盈率
+      indicator.inc_return > 3, # 净资产收益率(扣除非经常损益)(%)
+      indicator.inc_total_revenue_year_on_year > 5, # 营业总收入同比增长率(%)
+      indicator.inc_net_profit_year_on_year > 11, # 净利润同比增长率。
+      valuation.pe_ratio / indicator.inc_net_profit_year_on_year > 0.08, # 净利润同比增长率
+      valuation.pe_ratio / indicator.inc_net_profit_year_on_year < 1.9,
+    )
+  )
+  stocks = list(df.code) 
+  print("分红比率筛选后的股票有：{}".format(len(stocks)))
+  # print(df)
+  return stocks
