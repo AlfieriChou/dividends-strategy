@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from jqdata import *
+from jqlib.technical_analysis import *
 import datetime
 import pandas as pd
 
@@ -97,23 +98,10 @@ class DividendYield(object):
   不用 分红总数 / 市值， 是因为多地上市公司计算起来比较麻烦，不仅要用A股分红还得加上其他地方的，比如港股分红及汇率问题
   '''
   @staticmethod
-  def calc_dividend_yield(code_list:list, query_date:datetime.date) -> pd.DataFrame:
+  def calc_dividend_yield(code_list:list, query_date:datetime.date, price_df:pd.DataFrame) -> pd.DataFrame:
     bonus_df = DividendYield.get_bonus_ratio(code_list, query_date) 
     if bonus_df is None :
       return None
-    
-    price_df = get_price(
-      code_list,
-      start_date = query_date,
-      end_date = query_date,
-      frequency = 'daily',
-      fields = ['close'],
-      skip_paused = False,
-      fq = 'pre',
-      count = None,
-      panel = False,
-      fill_paused = False
-    )
     price_df = price_df.drop(['time'], axis = 1)
     df = pd.merge(price_df, bonus_df, on = 'code')
     #每10股分红转化为百分比股息率
