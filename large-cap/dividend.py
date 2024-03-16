@@ -115,12 +115,12 @@ class DividendYield(object):
   发送监控报告到企业微信
   '''
   @staticmethod
-  def send_monitor_wechat_msg(context, url: str, title: str, content: str) -> None:
+  def send_monitor_wechat_msg(date: datetime.date, url: str, title: str, content: str) -> None:
     headers = { 'Content-Type': 'application/json; charset=utf-8' }
     post_data = {
       'msgtype': 'markdown',
       'markdown': {
-        'content':  '## ' + title + ' \n 当前时间：' + context.current_dt.strftime("%Y-%m-%d %H:%M:%S") + ' \n \n ### 超过分红预警: \n' + content + '\n @Alfred'
+        'content':  '## ' + title + ' \n 当前时间：' + date.strftime("%Y-%m-%d") + ' \n \n ### 标的列表: \n' + content + '\n @Alfred'
       }
     }
     r = requests.post(url, headers = headers, data = json.dumps(post_data))
