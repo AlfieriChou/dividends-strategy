@@ -14,6 +14,7 @@ from email_msg import *
 from realtime_wechat_msg import *
 from monitor_wechat_msg import *
 import datetime
+from dividend import *
 
 #显示所有列
 pd.set_option('display.max_columns', None)
@@ -135,6 +136,8 @@ def run_monitor_schedule(context):
     send_realtime_wechat_msg(context, config['optional_config'], current_data)
     send_realtime_wechat_msg(context, config['outside_config'], current_data)
     send_realtime_wechat_msg(context, config['melody_config'], current_data)
+    send_realtime_wechat_msg(context, config['zhao_config'], current_data)
+    send_realtime_wechat_msg(context, config['li_config'], current_data)
 
 # 打印每日持仓信息
 def print_position_info(context):
@@ -236,6 +239,37 @@ def filter_stock_list(context):
       send_email_msg(context, config, target_list, current_data)
       send_daily_target_wechat_msg(context, config, target_list, current_data)
     send_daily_hold_wechat_msg(context, config)
+  query_date = DividendYield.convert_trade_date(context.previous_date)
+  monitor_str = ''
+  dividend_monitor_config = config['dividend_config']
+  for info in dividend_monitor_config['dividend_monitor']:
+    code_list = []
+    code = info['code']
+    code_list.append(code)
+    price_df = get_price(
+      code_list,
+      start_date = query_date,
+      end_date = query_date,
+      frequency = 'daily',
+      fields = ['close'],
+      skip_paused = False,
+      fq = 'pre',
+      count = None,
+      panel = False,
+      fill_paused = False
+    )
+    dividend_df = DividendYield().calc_dividend_yield(code_list, query_date, price_df)
+    dividend_yield = dividend_df['dividend_yield'].loc[dividend_df.index[0]]
+    if (dividend_yield > info['dividend']):
+      monitor_str += info['name'] + ': ' + '当前股息率：' + '{}'.format(format(dividend_yield, '.2f')) + ' 参考股息率：' + str(info['dividend']) + '\n'
+  if monitor_str == '':
+    return
+  DividendYield().send_monitor_wechat_msg(
+    now,
+    dividend_monitor_config['wechat_msg_url'],
+    '分红预警',
+    monitor_str
+  )
 
 ## 开盘前运行函数
 def before_market_open(context):
@@ -640,7 +674,7 @@ def build_sw_1_msg(context, index_name, df):
   return render_to_html_table(title, {}, header, rows)
 
 def get_dividend_list_by_sw1(sw1_code, date):
-  dividend_list = list(get_index_stocks('399411.XSHE', date))
+  dividend_list = list(get_index_stocks('000015.XSHG', date))
   sw1_stock_list = list(get_industry_stocks(sw1_code, date))
   target_list = []
   for stock in sw1_stock_list:
