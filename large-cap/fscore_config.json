@@ -1,19 +1,138 @@
 {
-  "name": "高股息神奇公式量化V0.1",
+  "name": "高股息神奇公式V3.0",
   "phone": "18569465445",
   "emailUsername": "alfierichou@163.com",
   "emailPassword": "DXLQAIRZXWACAFKT",
-  "sendEmails": "1906954731@qq.com",
+  "sendEmails": "1906954731@qq.com,1224118068@qq.com,1521043904@qq.com,799936531@qq.com,528457254@qq.com",
   "isTest": false,
   "testSendEmails": "1906954731@qq.com",
   "exclude_industry_filter_list": [
-    "券商I",
-    "非银金融I",
-    "金融服务I",
-    "房地产I",
-    "银行I"
+    "房地产I"
   ],
   "n": 20,
   "m": 2,
-  "isSendEmail": true
+  "isSendEmail": true,
+  "is_send_wechat_msg": true,
+  "wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=d7cb3bf6-0b82-4fc6-ae07-02bc895e2c79",
+  "daily_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=d7cb3bf6-0b82-4fc6-ae07-02bc895e2c79",
+  "monitor_config": {
+    "n": 20,
+    "m": 2,
+    "monitor_name": "日内价格监控",
+    "monitor_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=83f220c3-ea0d-4485-8cf7-889166f813e9",
+    "monitor_stock_list": [{
+      "code": "600900.XSHG",
+      "name": "长江电力",
+      "min": 22,
+      "max": 26
+    }, {
+      "code": "002236.XSHE",
+      "name": "大华股份",
+      "min": 16,
+      "max": 22
+    }, {
+      "code": "601288.XSHG",
+      "name": "农业银行",
+      "min": 3.50,
+      "max": 4.50
+    }, {
+      "code": "600398.XSHG",
+      "name": "海澜之家",
+      "min": 7.0,
+      "max": 9.0
+    }, {
+      "code": "601006.XSHG",
+      "name": "大秦铁路",
+      "min": 7.0,
+      "max": 7.8
+    }, {
+      "code": "600741.XSHG",
+      "name": "华域汽车",
+      "min": 16.5,
+      "max": 25
+    }]
+  },
+  "optional_config": {
+    "n": 20,
+    "m": 2,
+    "realtime_name": "自选监控",
+    "realtime_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ee862d34-b01c-44e1-a614-112b3b39f4f1",
+    "realtime_stock_list": [{
+      "code": "600398.XSHG",
+      "name": "海澜之家",
+      "unit": "30m"
+    }, {
+      "code": "601000.XSHG",
+      "name": "唐山港",
+      "unit": "30m"
+    }, {
+      "code": "601006.XSHG",
+      "name": "大秦铁路",
+      "unit": "30m"
+    }, {
+      "code": "600028.XSHG",
+      "name": "中国石化",
+      "unit": "30m"
+    }, {
+      "code": "002555.XSHE",
+      "name": "三七互娱",
+      "unit": "30m"
+    }]
+  },
+  "outside_config": {
+    "n": 20,
+    "m": 2,
+    "realtime_name": "日内监控",
+    "realtime_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=4b641d47-66af-405d-92ec-3efe5fb08171",
+    "realtime_stock_list": []
+  },
+  "melody_config": {
+    "n": 20,
+    "m": 2,
+    "realtime_name": "日内监控",
+    "realtime_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=b6f31390-eed4-401b-9231-ca0b4dff1ec1",
+    "realtime_stock_list": [{
+      "code": "002191.XSHE",
+      "name": "劲嘉股份",
+      "unit": "30m"
+    }, {
+      "code": "600691.XSHG",
+      "name": "阳煤化工",
+      "unit": "30m"
+    }, {
+      "code": "600131.XSHG",
+      "name": "国网信通",
+      "unit": "30m"
+    }]
+  },
+  "zhao_config": {
+    "n": 20,
+    "m": 2,
+    "realtime_name": "日内监控",
+    "realtime_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=54433d1f-b072-4710-bc70-6261fea9af03",
+    "realtime_stock_list": [{
+      "code": "600036.XSHG",
+      "name": "招商银行",
+      "unit": "30m"
+    }]
+  },
+  "li_config": {
+    "n": 20,
+    "m": 2,
+    "realtime_name": "日内监控",
+    "realtime_wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a6642622-b869-4bf9-9bd9-2e3f7c139b5b",
+    "realtime_stock_list": []
+  },
+  "dividend_config": {
+    "wechat_msg_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=4b641d47-66af-405d-92ec-3efe5fb08171",
+    "dividend_monitor": [{
+      "code": "600900.XSHG",
+      "name": "长江电力",
+      "dividend": 3
+    }, {
+      "code": "600028.XSHG",
+      "name": "中国石化",
+      "dividend": 5.7
+    }]
+  }
 }
