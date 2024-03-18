@@ -67,58 +67,12 @@
       }
     ]
   },
-  "commit_scope": {
-    "enable": true,
-    "custom_scope": false,
-    "initial_value": "app",
-    "options": [
-      {
-        "value": "app",
-        "label": "app"
-      },
-      {
-        "value": "shared",
-        "label": "shared"
-      },
-      {
-        "value": "server",
-        "label": "server"
-      },
-      {
-        "value": "tools",
-        "label": "tools"
-      },
-      {
-        "value": "",
-        "label": "none"
-      }
-    ]
-  },
-  "check_ticket": {
-    "infer_ticket": true,
-    "confirm_ticket": true,
-    "add_to_title": true,
-    "append_hashtag": false,
-    "surround": "",
-    "title_position": "start"
-  },
   "commit_title": {
     "max_size": 70
   },
   "commit_body": {
     "enable": true,
     "required": false
-  },
-  "commit_footer": {
-    "enable": true,
-    "initial_value": [],
-    "options": [
-      "closes",
-      "trailer",
-      "breaking-change",
-      "deprecated",
-      "custom"
-    ]
   },
   "breaking_change": {
     "add_exclamation_to_title": true
