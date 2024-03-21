@@ -50,7 +50,7 @@ class Epo(object):
 
   # 根据EPO获取相对应的权重
   @staticmethod
-  def run_optimization(prices, end_date):
+  def get_epo_weights(prices, end_date):
     returns = prices.pct_change().dropna() # 计算收益率
     d = np.diag(returns.cov())
     a = (1/d) / (1/d).sum()
