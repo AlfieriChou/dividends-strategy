@@ -1,4 +1,6 @@
-class RiskControlStatus(Enum):
+import talib
+
+class RiskControlStatus():
   RISK_WARNING = 1
   RISK_NORMAL = 2
 
@@ -29,7 +31,7 @@ class RiskControl(object):
     ma = talib.MA(close_list, timeperiod = period)[-1]
     ma_rate = hst['close'][-1] / ma
     if (show_ma_rate):
-      record(mar = ma_rate)
+      print(ma, ma_rate)
 
     return ma_rate
 
@@ -41,11 +43,11 @@ class RiskControl(object):
 
     rsi = talib.RSI(np.array(close), timeperiod = period)[-1]
     if (show_rsi):
-      record(RSI = max(0, (rsi - 50)))
+      print(RSI = max(0, (rsi - 50)))
 
     return (rsi_min < rsi < rsi_max)
 
-  def check_for_benchmark_v1(self, context):
+  def check_for_benchmark_v1(self):
     could_trade_ma_rate = self.check_for_ma_rate(10000, 0.75, 1.50, True)
 
     could_trade = False
@@ -56,7 +58,7 @@ class RiskControl(object):
 
     return could_trade
 
-  def check_for_benchmark(self, context):
+  def check_for_benchmark(self):
     ma_rate = self.compute_ma_rate(1000, False)
     if (ma_rate <= 0.0):
       return False
