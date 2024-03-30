@@ -114,18 +114,15 @@ def adjust_position(context, buy_stocks):
             
             #ATR计算风险，调整仓位
             # 首先计算stock_values是能够承受的亏损幅度，函数返回【个股持仓价值】
-            stock_values =ATR_Position(context,buy_lists)
+            stock_values = ATR_Position(context, buy_lists)
             
             # 进行买入操作
             for stock in stock_values:
                 # 预计买入价值 = stock_values
                 cash  = stock_values[stock]
                 close_data = attribute_history(stock, 5, '1d', ['close'])
-                e_5 = (close_data['close'][-1] -
-                       close_data['close'][0]) / close_data['close'][0]
-                if current_data[
-                        stock].last_price * 120 < cash and not judge_More_average(
-                            stock):
+                e_5 = (close_data['close'][-1] - close_data['close'][0]) / close_data['close'][0]
+                if current_data[stock].last_price * 120 < cash and not judge_More_average(stock):
                     if not e_5 < -0.1 and stock in g.stock_list:
                         result = order_value(stock, cash)
                         if not result == None:
@@ -166,25 +163,25 @@ def stop_loss(context):
 def ATR_Position(context, buylist):
     # 每次调仓，用 positionAdjustFactor(总资产*损失比率) 来控制承受的风险
     # positionAdjustValue：最大损失的资金量
-    positionAdjustValue =context.portfolio.available_cash * g.risk_ratio
+    positionAdjustValue = context.portfolio.available_cash * g.risk_ratio
     # Ajustvalue_per_stock是个股能承受的最大损失资金量（等分）
-    Adjustvalue_per_stock =float(positionAdjustValue)/len(buylist)
+    Adjustvalue_per_stock = float(positionAdjustValue) / len(buylist)
    
     # 取到buylist个股名单上一个1分钟收盘价，df=False不返回df数据类型
-    hStocks = history(1, '1m', 'close',buylist, df=False)
+    hStocks = history(1, '1m', 'close', buylist, df = False)
     # 建立一个dataframe：risk_value
     # 第一列是buylist股票代码，第二列是risk_value
     risk_value = {}
     # 计算个股动态头寸risk_value
     for stock in buylist:
         # curATR是2倍日线ATR值，输出转化成浮点数
-        curATR = 2*float(fun_getATR(stock))
+        curATR = 2 * float(fun_getATR(stock))
         if curATR != 0 :
             # 拆解分析：当前价 * 个股能承受的最大损失资金量是【个股持仓价值】
             # 如果不除以curATR，说明不进行个股头寸波动性变化
             # ATR越大，个股risk_value越小；ATR越小，个股risk_value越大
             # 说明波动性和个股持仓价值应该负相关（进行个股持仓量动态分配），这符合资金管理或者资产配置原则
-            risk_value[stock] =hStocks[stock]*Adjustvalue_per_stock/curATR
+            risk_value[stock] = hStocks[stock] * Adjustvalue_per_stock / curATR
             # risk_value[stock] =Adjustvalue_per_stock
         else:
             risk_value[stock] = 0
@@ -195,7 +192,7 @@ def ATR_Position(context, buylist):
 # 计算日线级别ATRlag周期ATR
 def fun_getATR(stock):
     try:
-        hStock = attribute_history(stock,g.ATR_timeperiod+10, '1d', ('close','high','low') , df=False)
+        hStock = attribute_history(stock,g.ATR_timeperiod + 10, '1d', ('close','high','low') , df=False)
     except:
         log.info('%s 获取历史数据失败' %stock)
         return 0
