@@ -24,13 +24,13 @@ def fun_getATR(stock):
   # 返回前一个ATR值
   return ATR[-1]
 
-def ATR_Position(buylist):
+def ATR_Position(buylist, cash):
   # 每次调仓，用 positionAdjustFactor(总资产*损失比率) 来控制承受的风险
-  positionAdjustValue = available_cash * risk_ratio # 最大损失的资金量
+  positionAdjustValue = cash * risk_ratio # 最大损失的资金量
   Adjustvalue_per_stock = float(positionAdjustValue) / len(buylist) # 个股能承受的最大损失资金量（等分）
   
   # 取到buylist个股名单上一个1分钟收盘价，df=False不返回df数据类型
-  hStocks = history(1, '1m', 'close', buylist, df = False)
+  hStocks = attribute_history(1, '1m', 'close', buylist, df = False)
   # 建立一个dataframe：risk_value
   # 第一列是buylist股票代码，第二列是risk_value
   risk_value = {}
@@ -51,7 +51,7 @@ def ATR_Position(buylist):
 
 # 均分计算金额
 def atr_cash_control(buylist, cash):
-  stock_values = ATR_Position(buylist)
+  stock_values = ATR_Position(buylist, cash)
   total_value = 0
   for stock in stock_values:
     total_value += stock_values[stock][0]
@@ -59,6 +59,6 @@ def atr_cash_control(buylist, cash):
   for code in buylist:
     tmp.append({
       'code':code,
-      'case': int((stock_values[code][0] / total_value) * cash)
+      'cash': int((stock_values[code][0] / total_value) * cash)
     })
   return pd.DataFrame(tmp)
