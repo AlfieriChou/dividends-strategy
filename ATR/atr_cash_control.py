@@ -1,10 +1,11 @@
-import talib
+# -*- coding: utf-8 -*-
 
-available_cash = 50000
+from jqdata import *
+import talib
+import pandas as pd
+
 risk_ratio = 0.1
 ATR_timeperiod = 14
-
-buylist = ['600900.XSHG', '600004.XSHG', '002555.XSHE', '600398.XSHG', '002032.XSHE']
 
 def fun_getATR(stock):
   try:
@@ -49,9 +50,15 @@ def ATR_Position(buylist):
   return risk_value
 
 # 均分计算金额
-stock_values = ATR_Position(buylist)
-total_value = 0
-for stock in stock_values:
-  total_value += stock_values[stock][0]
-print(int((stock_values['600900.XSHG'][0] / total_value) * available_cash))
-print(int((stock_values['600004.XSHG'][0] / total_value) * available_cash))
+def atr_cash_control(buylist, cash):
+  stock_values = ATR_Position(buylist)
+  total_value = 0
+  for stock in stock_values:
+    total_value += stock_values[stock][0]
+  tmp = []
+  for code in buylist:
+    tmp.append({
+      'code':code,
+      'case': int((stock_values[code][0] / total_value) * cash)
+    })
+  return pd.DataFrame(tmp)
